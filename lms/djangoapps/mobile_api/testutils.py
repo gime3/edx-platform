@@ -13,17 +13,36 @@ Test utilities for mobile API tests:
 # pylint: disable=no-member
 import ddt
 from mock import patch
-from rest_framework.test import APITestCase
+
+from django.conf import settings
 from django.core.urlresolvers import reverse
+from django.test.client import RequestFactory
+from rest_framework.test import APITestCase
 
-from opaque_keys.edx.keys import CourseKey
 from courseware.tests.factories import UserFactory
-
+from courseware.model_data import FieldDataCache
+from courseware.module_render import get_module
+from courseware.entrance_exams import (
+    get_entrance_exam_score,
+    user_has_passed_entrance_exam,
+)
+from opaque_keys.edx.keys import CourseKey
 from student import auth
 from student.models import CourseEnrollment
-
+from util.milestones_helpers import (
+    add_milestone,
+    add_course_content_milestone,
+    add_course_milestone,
+    add_prerequisite_course,
+    fulfill_course_milestone,
+    generate_milestone_namespace,
+    get_milestone_relationship_types,
+    get_namespace_choices,
+    seed_milestone_relationship_types,
+)
+from xmodule.modulestore.django import modulestore
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
-from xmodule.modulestore.tests.factories import CourseFactory
+from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 
 
 class MobileAPITestCase(ModuleStoreTestCase, APITestCase):
@@ -204,3 +223,183 @@ class MobileEnrolledCourseAccessTestMixin(MobileCourseAccessTestMixin):
         self.unenroll()
         response = self.api_response(expected_response_code=None)
         self.verify_failure(response)
+
+
+class TestMobileAPIMilestones(MobileAPITestCase, MobileCourseAccessTestMixin):
+    """
+    Tests the Mobile API decorators for milestones.
+
+    The two milestones supported and tests are entrance exams and
+    pre-requisite courses. If either of these milestones are unfulfilled,
+    the mobile api will block content until the milestone is fulfilled.
+    """
+    REVERSE_INFO = {'name': 'video-summary-list', 'params': ['course_id']}
+    MILESTONE_ERROR = {'developer_message': 'Cannot access content with unfulfilled pre-requisites or unpassed entrance exam.'}
+
+    def setUp(self):
+        """ Sets up milestones """
+        super(TestMobileAPIMilestones, self).setUp()
+
+        # Pre-req course set up
+        self.prereq_course = CourseFactory.create()
+        seed_milestone_relationship_types()
+
+        # Set up the extrance exam
+        self.course.entrance_exam_enabled = True
+
+        self.entrance_exam = ItemFactory.create(
+            parent=self.course,
+            category="chapter",
+            display_name="Entrance Exam Chapter",
+            is_entrance_exam=True,
+            in_entrance_exam=True
+        )
+        self.problem_1 = ItemFactory.create(
+            parent=self.entrance_exam,
+            category='problem',
+            display_name="The Only Exam Problem",
+            graded=True,
+            in_entrance_exam=True
+        )
+
+        namespace_choices = get_namespace_choices()
+        milestone_namespace = generate_milestone_namespace(
+            namespace_choices.get('ENTRANCE_EXAM'),
+            self.course.id
+        )
+        self.milestone = {
+            'name': 'Test Milestone',
+            'namespace': milestone_namespace,
+            'description': 'Entrance Exam for TestMobileAPIMilestones',
+        }
+        self.milestone_relationship_types = get_milestone_relationship_types()
+        self.milestone = add_milestone(self.milestone)
+
+        self.course.entrance_exam_minimum_score_pct = 0.50
+        self.course.entrance_exam_id = unicode(self.entrance_exam.scope_ids.usage_id)
+        modulestore().update_item(self.course, self.user.id)
+
+        # set up the request for exam functions
+        self.request = RequestFactory()
+        self.request.user = self.user
+        self.request.COOKIES = {}
+        self.request.META = {}
+        self.request.is_secure = lambda: True
+        self.request.get_host = lambda: "edx.org"
+        self.request.method = 'GET'
+
+    def _add_entrance_exam(self):
+        """ Helper function to add the entrance exam """
+        add_course_milestone(
+            unicode(self.course.id),
+            self.milestone_relationship_types['REQUIRES'],
+            self.milestone
+        )
+        add_course_content_milestone(
+            unicode(self.course.id),
+            unicode(self.entrance_exam.location),
+            self.milestone_relationship_types['FULFILLS'],
+            self.milestone
+        )
+
+    def _pass_entrance_exam(self):
+        """ Helper function to pass the entrance exam """
+        self.assertEqual(get_entrance_exam_score(self.request, self.course), 0)
+        self.assertEqual(user_has_passed_entrance_exam(self.request, self.course), False)
+        # pylint: disable=maybe-no-member,no-member
+        grade_dict = {'value': 1, 'max_value': 1, 'user_id': self.user.id}
+        field_data_cache = FieldDataCache.cache_for_descriptor_descendents(
+            self.course.id,
+            self.user,
+            self.course,
+            depth=2
+        )
+        # pylint: disable=protected-access
+        module = get_module(
+            self.user,
+            self.request,
+            self.problem_1.scope_ids.usage_id,
+            field_data_cache,
+        )._xmodule
+        module.system.publish(self.problem_1, 'grade', grade_dict)
+
+        self.assertEqual(get_entrance_exam_score(self.request, self.course), 1.0)
+        self.assertEqual(user_has_passed_entrance_exam(self.request, self.course), True)
+
+    @patch.dict('django.conf.settings.FEATURES', {'ENABLE_PREREQUISITE_COURSES': True, 'MILESTONES_APP': True, 'ENTRANCE_EXAMS': True})
+    def test_feature_flags(self):
+        """
+        Tests when feature flags are set/unset, content is gated appropriately
+        """
+        self.init_course_access()
+        add_prerequisite_course(self.course.id, self.prereq_course.id)
+        self._add_entrance_exam()
+        response = self.api_response(expected_response_code=None)
+        self.verify_failure(response)
+        settings.FEATURES["MILESTONES_APP"] = False
+        response = self.api_response(expected_response_code=None)
+        self.verify_success(response)
+
+    @patch.dict('django.conf.settings.FEATURES', {'ENABLE_PREREQUISITE_COURSES': True, 'MILESTONES_APP': True})
+    def test_unfulfilled_prerequisite_course(self):
+        """ Tests the case for an unfulfilled pre-requisite course """
+        add_prerequisite_course(self.course.id, self.prereq_course.id)
+        self.init_course_access()
+        response = self.api_response(expected_response_code=None)
+        self.verify_failure(response)
+        self.assertEqual(response.data, self.MILESTONE_ERROR)
+
+    @patch.dict('django.conf.settings.FEATURES', {'ENABLE_PREREQUISITE_COURSES': True, 'MILESTONES_APP': True})
+    def test_unfulfilled_prerequisite_course_for_staff(self):
+        add_prerequisite_course(self.course.id, self.prereq_course.id)
+
+        self.user.is_staff = True
+        self.user.save()
+        self.init_course_access()
+        response = self.api_response(expected_response_code=None)
+        self.verify_success(response)
+
+    @patch.dict('django.conf.settings.FEATURES', {'ENABLE_PREREQUISITE_COURSES': True, 'MILESTONES_APP': True})
+    def test_fulfilled_prerequisite_course(self):
+        """
+        Tests the case when a user fulfills existing pre-requisite course
+        """
+        add_prerequisite_course(self.course.id, self.prereq_course.id)
+        fulfill_course_milestone(self.prereq_course.id, self.user)
+        self.init_course_access()
+        response = self.api_response(expected_response_code=None)
+        self.verify_success(response)
+
+    @patch.dict('django.conf.settings.FEATURES', {'ENTRANCE_EXAMS': True, 'MILESTONES_APP': True})
+    def test_unpassed_entrance_exam(self):
+        """
+        Tests the case where the user has not passed the entrance exam
+        """
+        self._add_entrance_exam()
+
+        self.init_course_access()
+        response = self.api_response(expected_response_code=None)
+        self.verify_failure(response)
+        self.assertEqual(response.data, self.MILESTONE_ERROR)
+
+    @patch.dict('django.conf.settings.FEATURES', {'ENTRANCE_EXAMS': True, 'MILESTONES_APP': True})
+    def test_unpassed_entrance_exam_for_staff(self):
+        self._add_entrance_exam()
+
+        self.user.is_staff = True
+        self.user.save()
+        self.init_course_access()
+        response = self.api_response(expected_response_code=None)
+        self.verify_success(response)
+
+    @patch.dict('django.conf.settings.FEATURES', {'ENTRANCE_EXAMS': True, 'MILESTONES_APP': True})
+    def test_passed_entrance_exam(self):
+        """
+        Tests access when user has passed the entrance exam
+        """
+        self._add_entrance_exam()
+        self._pass_entrance_exam()
+
+        self.init_course_access()
+        response = self.api_response(expected_response_code=None)
+        self.verify_success(response)
