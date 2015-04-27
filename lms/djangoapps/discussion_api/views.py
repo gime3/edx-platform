@@ -1,10 +1,7 @@
 """
 Discussion API views
 """
-from django.http import Http404
-
 from rest_framework.authentication import OAuth2Authentication, SessionAuthentication
-from rest_framework.exceptions import MethodNotAllowed, NotAuthenticated
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -37,9 +34,6 @@ class CourseTopicsView(DeveloperErrorViewMixin, APIView):
 
             * name: The display name of the topic.
 
-            * thread_list_url: The URL from which the list of threads in the
-              topic can be retrieved.
-
             * children: A list of child subtrees of the same format.
 
         * non_courseware_topics: The list of topic trees that are not linked to
@@ -49,6 +43,7 @@ class CourseTopicsView(DeveloperErrorViewMixin, APIView):
     permission_classes = (IsAuthenticated,)
 
     def get(self, request, course_id):
+        """Implements the GET method as described in the class docstring."""
         course_key = CourseLocator.from_string(course_id)
         course = get_course_with_access(request.user, 'load_forum', course_key)
         return Response(get_course_topics(course, request.user, request.build_absolute_uri))

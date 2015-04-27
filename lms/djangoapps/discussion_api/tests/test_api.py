@@ -80,17 +80,6 @@ class GetCourseTopicsTest(UrlResetMixin, ModuleStoreTestCase):
             "name": name,
             "children": children,
         }
-        if topic_id:
-            node["thread_list_url"] = (
-                "http://openedx.example.com/courses/x/y/z/discussion/forum?"
-                "commentable_id={}"
-            ).format(topic_id)
-        else:
-            child_ids = [child["id"] for child in children]
-            node["thread_list_url"] = (
-                "http://openedx.example.com/courses/x/y/z/discussion/forum?"
-                "commentable_ids={}"
-            ).format("%2C".join(sorted(child_ids)))
         return node
 
     def test_empty(self):

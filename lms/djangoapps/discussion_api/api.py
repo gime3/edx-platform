@@ -26,34 +26,6 @@ def get_course_topics(course, user, build_absolute_uri):
     A course topic listing dictionary; see discussion_api.views.CourseTopicViews
     for more detail.
     """
-    # TODO: This is temporary until the discussion_api thread list view is implemented
-    thread_list_path = reverse(
-        "django_comment_client.forum.views.forum_form_discussion",
-        kwargs={"course_id": unicode(course.id)}
-    )
-
-    def get_thread_list_url_with_query(query):
-        """
-        Given the appropriate filter query part, return the full thread list URL
-        """
-        return build_absolute_uri(urlunsplit((None, None, thread_list_path, query, None)))
-
-    def get_multi_topic_url(topic_ids):
-        """
-        Given a list of topic ids, return the URL to retrieve the combined list
-        of threads for those topics
-        """
-        return get_thread_list_url_with_query(
-            urlencode({"commentable_ids": ",".join(sorted(topic_ids))})
-        )
-
-    def get_single_topic_url(topic_id):
-        """
-        Given a single topic id, return the URL to retrieve the list of threads
-        for that topic
-        """
-        return get_thread_list_url_with_query(urlencode({"commentable_id": topic_id}))
-
     def get_module_sort_key(module):
         """
         Get the sort key for the module (falling back to the discussion_target
@@ -69,14 +41,10 @@ def get_course_topics(course, user, build_absolute_uri):
         {
             "id": None,
             "name": category,
-            "thread_list_url": get_multi_topic_url(
-                module.discussion_id for module in modules_by_category[category]
-            ),
             "children": [
                 {
                     "id": module.discussion_id,
                     "name": module.discussion_target,
-                    "thread_list_url": get_single_topic_url(module.discussion_id),
                     "children": [],
                 }
                 for module in sorted(modules_by_category[category], key=get_module_sort_key)
@@ -89,7 +57,6 @@ def get_course_topics(course, user, build_absolute_uri):
         {
             "id": entry["id"],
             "name": name,
-            "thread_list_url": get_single_topic_url(entry["id"]),
             "children": [],
         }
         for name, entry in sorted(

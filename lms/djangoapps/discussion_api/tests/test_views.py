@@ -82,10 +82,6 @@ class CourseTopicsViewTest(UrlResetMixin, ModuleStoreTestCase):
                 "non_courseware_topics": [{
                     "id": "test_topic",
                     "name": "Test Topic",
-                    "thread_list_url": (
-                        "http://testserver/courses/x/y/z/discussion/forum?"
-                        "commentable_id=test_topic"
-                    ),
                     "children": []
                 }],
             }
