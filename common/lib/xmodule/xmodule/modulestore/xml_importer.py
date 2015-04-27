@@ -29,6 +29,7 @@ from path import path
 import json
 import re
 from lxml import etree
+import copy
 
 from xmodule.modulestore.xml import XMLModuleStore, LibraryXMLModuleStore, ImportSystem
 from xblock.runtime import KvsFieldData, DictKeyValueStore
@@ -1156,6 +1157,7 @@ def _update_module_location(module, new_location):
             module.get_explicitly_set_fields_by_scope(Scope.content).keys() +
             module.get_explicitly_set_fields_by_scope(Scope.settings).keys()
         )
+        original_module = copy.deepcopy(module)
 
     module.location = new_location
 
@@ -1167,5 +1169,20 @@ def _update_module_location(module, new_location):
     # explicitly set each field to its current value before triggering the save.
     if len(rekey_fields) > 0:
         for rekey_field_name in rekey_fields:
+            # updating the KvsFieldData with the new location
+
+            # old key-value store information from original-module
+            # pylint: disable=protected-access
+            old_kvs_key = original_module._field_data._key(original_module, rekey_field_name)
+            old_kvs_value = original_module.xblock_kvs.get(old_kvs_key)
+
+            # current key-value store key for the rekey_field_name
+            # pylint: disable=protected-access
+            kvs_key = module._field_data._key(module, rekey_field_name)
+
+            # deleting the old_kvs_key from module and update it with new one
+            module.xblock_kvs.delete(old_kvs_key)
+            module.xblock_kvs.set(kvs_key, old_kvs_value)
+
             setattr(module, rekey_field_name, getattr(module, rekey_field_name))
         module.save()
