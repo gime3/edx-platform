@@ -2280,7 +2280,7 @@ class TestPublishOverExportImport(CommonMixedModuleStoreSetup):
             export_dir,
             top_level_export_dir,
         )
-        import ipdb;ipdb.set_trace()
+
         import_course_from_xml(
             modulestore,
             'test_user',
