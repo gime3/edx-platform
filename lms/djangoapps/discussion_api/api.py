@@ -2,15 +2,11 @@
 Discussion API internal interface
 """
 from collections import defaultdict
-from urllib import urlencode
-from urlparse import urlunsplit
-
-from django.core.urlresolvers import reverse
 
 from django_comment_client.utils import get_accessible_discussion_modules
 
 
-def get_course_topics(course, user, build_absolute_uri):
+def get_course_topics(course, user):
     """
     Return the course topic listing for the given course and user.
 
@@ -18,8 +14,6 @@ def get_course_topics(course, user, build_absolute_uri):
 
     course: The course to get topics for
     user: The requesting user, for access control
-    build_absolute_uri: a function that takes a relative URI and returns an
-        absolute URI
 
     Returns:
 

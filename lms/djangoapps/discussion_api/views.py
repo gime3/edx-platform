@@ -46,4 +46,4 @@ class CourseTopicsView(DeveloperErrorViewMixin, APIView):
         """Implements the GET method as described in the class docstring."""
         course_key = CourseLocator.from_string(course_id)
         course = get_course_with_access(request.user, 'load_forum', course_key)
-        return Response(get_course_topics(course, request.user, request.build_absolute_uri))
+        return Response(get_course_topics(course, request.user))

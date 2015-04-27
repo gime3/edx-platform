@@ -2,7 +2,6 @@
 Tests for Discussion API internal interface
 """
 from datetime import datetime, timedelta
-from urlparse import urlsplit, urlunsplit
 
 import mock
 from pytz import UTC
@@ -16,12 +15,6 @@ from util.testing import UrlResetMixin
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 from xmodule.partitions.partitions import Group, UserPartition
-
-
-def mock_build_absolute_uri(uri):
-    """Builds an absolute URI with a test scheme/domain from a relative URI"""
-    _, _, path, query, fragment = urlsplit(uri)
-    return urlunsplit(("http", "openedx.example.com", path, query, fragment))
 
 
 @mock.patch.dict("django.conf.settings.FEATURES", {"DISABLE_START_DATES": False})
@@ -67,7 +60,7 @@ class GetCourseTopicsTest(UrlResetMixin, ModuleStoreTestCase):
         Get course topics for self.course, using the given user or self.user if
         not provided, and generating absolute URIs with a test scheme/host.
         """
-        return get_course_topics(self.course, user or self.user, mock_build_absolute_uri)
+        return get_course_topics(self.course, user or self.user)
 
     def make_expected_tree(self, topic_id, name, children=None):
         """
