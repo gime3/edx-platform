@@ -233,5 +233,25 @@ define([
                 expect(mockViewer.element.appendTo).toHaveBeenCalledWith(annotators[0].wrapper);
             });
         });
+
+        describe('TagsPlugin', function () {
+            it('should add aria label information to the viewer', function() {
+                var tagDiv,
+                    annotation = {
+                        id: '01',
+                        text: "Test text",
+                        tags: ["tag1", "tag2", "tag3"],
+                        highlights: [highlights[0].get(0)]
+                    };
+
+                annotators[0].viewer.load([annotation]);
+                tagDiv = annotators[0].viewer.element.find('.annotator-tags');
+                expect($(tagDiv).attr('role')).toEqual('region');
+                expect($(tagDiv).attr('aria-label')).toEqual('tags');
+
+                // Three children for the individual tags.
+                expect($(tagDiv).children().length).toEqual(3);
+            });
+        });
     });
 });

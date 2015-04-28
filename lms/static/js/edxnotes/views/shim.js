@@ -58,6 +58,31 @@ define([
         return (timeToExpiry > 0) ? timeToExpiry : 0;
     };
 
+    Annotator.Plugin.Tags.prototype.pluginInit = _.compose(
+        function() {
+            // Add screen-reader label for edit mode.
+            var index = this.annotator.editor.fields.length -1;
+            var tagsField = 'annotator-field-' + index;
+            $('<label class="sr" for='+ tagsField +'>Edit tags</label>').insertBefore(
+                $('#'+tagsField, this.wrapper)
+            );
+            return this;
+        },
+        Annotator.Plugin.Tags.prototype.pluginInit
+    );
+
+    Annotator.Plugin.Tags.prototype.updateViewer = _.compose(
+        function() {
+            // Add aria information for viewing mode.
+            $('div.annotator-tags', this.wrapper).attr({
+                'role': 'region',
+                'aria-label': 'tags'
+            });
+            return this;
+        },
+        Annotator.Plugin.Tags.prototype.updateViewer
+    );
+
     /**
      * Modifies Annotator.highlightRange to add "tabindex=0" and role="link"
      * attributes to the <span class="annotator-hl"> markup that encloses the
