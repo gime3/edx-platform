@@ -42,12 +42,14 @@ def assert_event_matches(expected, actual, strict=False):
             'Actual:',
             pprint.pformat(actual),
         ]
-        raise AssertionError('Unexpected event differences found:\n' + '\n'.join(debug_info + errors))
+        raise AssertionError('Unexpected event differences found:\n' + '\n'.join(errors + debug_info))
 
 
 def _compare_trees(expected, actual, strict, path):
     errors = []
 
+    # Some events store their payload in a JSON string instead of a dict. Comparing these strings can be problematic
+    # since the keys may be in different orders, so we parse the string here if we were expecting a dict.
     if not strict and path == ['event'] and isinstance(expected, dict) and isinstance(actual, basestring):
         actual = json.loads(actual)
 

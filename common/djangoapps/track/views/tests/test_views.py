@@ -150,7 +150,12 @@ class TestTrackViews(EventTrackingTestCase):
             'host': 'testserver',
             'context': {},
         }
-        self.mock_tracker.send.assert_called_once_with(expected_event)
+        self.assert_mock_tracker_call_matches(expected_event)
+
+    def assert_mock_tracker_call_matches(self, expected_event):
+        self.assertEqual(len(self.mock_tracker.send.mock_calls), 1)
+        actual_event = self.mock_tracker.send.mock_calls[0][1][0]
+        assert_event_matches(expected_event, actual_event)
 
     def test_server_track_with_middleware(self):
         middleware = TrackMiddleware()
@@ -183,7 +188,7 @@ class TestTrackViews(EventTrackingTestCase):
         finally:
             middleware.process_response(request, None)
 
-        self.mock_tracker.send.assert_called_once_with(expected_event)
+        self.assert_mock_tracker_call_matches(expected_event)
 
     def test_server_track_with_middleware_and_google_analytics_cookie(self):
         middleware = TrackMiddleware()
@@ -217,7 +222,7 @@ class TestTrackViews(EventTrackingTestCase):
         finally:
             middleware.process_response(request, None)
 
-        self.mock_tracker.send.assert_called_once_with(expected_event)
+        self.assert_mock_tracker_call_matches(expected_event)
 
     def test_server_track_with_no_request(self):
         request = None
@@ -237,7 +242,7 @@ class TestTrackViews(EventTrackingTestCase):
             'host': '',
             'context': {},
         }
-        self.mock_tracker.send.assert_called_once_with(expected_event)
+        self.assert_mock_tracker_call_matches(expected_event)
 
     def test_task_track(self):
         request_info = {
@@ -272,4 +277,4 @@ class TestTrackViews(EventTrackingTestCase):
                 'org_id': ''
             },
         }
-        self.mock_tracker.send.assert_called_once_with(expected_event)
+        self.assert_mock_tracker_call_matches(expected_event)
