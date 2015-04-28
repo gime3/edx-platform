@@ -636,14 +636,17 @@ def _update_and_import_module(
         module, store, user_id,
         source_course_id, dest_course_id,
         do_import_static=True, runtime=None):
-
+    """
+    Update all the module reference fields to the destination course id,
+    then import the module into the destination course.
+    """
     logging.debug(u'processing import of module %s...', unicode(module.location))
 
     def _update_module_references(module, source_course_id, dest_course_id):
         """
         Move the module to a new course.
         """
-        def _convert_reference_fields_to_new_namespace(reference):
+        def _convert_ref_fields_to_new_namespace(reference):
             """
             Convert a reference to the new namespace, but only
             if the original namespace matched the original course.
@@ -664,14 +667,14 @@ def _update_and_import_module(
                     if value is None:
                         fields[field_name] = None
                     else:
-                        fields[field_name] = _convert_reference_fields_to_new_namespace(field.read_from(module))
+                        fields[field_name] = _convert_ref_fields_to_new_namespace(field.read_from(module))
                 elif isinstance(field, ReferenceList):
                     references = field.read_from(module)
-                    fields[field_name] = [_convert_reference_fields_to_new_namespace(reference) for reference in references]
+                    fields[field_name] = [_convert_ref_fields_to_new_namespace(reference) for reference in references]
                 elif isinstance(field, ReferenceValueDict):
                     reference_dict = field.read_from(module)
                     fields[field_name] = {
-                        key: _convert_reference_fields_to_new_namespace(reference)
+                        key: _convert_ref_fields_to_new_namespace(reference)
                         for key, reference
                         in reference_dict.iteritems()
                     }
