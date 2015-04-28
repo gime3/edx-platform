@@ -1,5 +1,5 @@
 from bok_choy.page_object import PageObject, PageLoadError, unguarded
-from bok_choy.promise import BrokenPromise
+from bok_choy.promise import BrokenPromise, EmptyPromise
 from .course_page import CoursePage
 from ...tests.helpers import disable_animations
 from selenium.webdriver.common.action_chains import ActionChains
@@ -568,10 +568,14 @@ class EdxNoteHighlight(NoteChild):
         Returns true iff a screen reader label exists for the annotator field with the specified index and text.
         """
         label_exists = False
+        EmptyPromise(
+            lambda: len(self.q(css=self._bounded_selector("li.annotator-item > label.sr"))) > index,
+            "sr label never appeared"
+        ).fulfill()
         annotator_field_label = self.q(css=self._bounded_selector("li.annotator-item > label.sr"))[index]
         if annotator_field_label and \
-            (annotator_field_label.get_attribute("for") == "annotator-field-"+str(index)) and \
-            (annotator_field_label.text == expected_text):
+            (annotator_field_label.get_attribute("for") == "annotator-field-" + str(index)) and \
+                (annotator_field_label.text == expected_text):
             label_exists = True
 
         self.q(css=("body")).first.click()

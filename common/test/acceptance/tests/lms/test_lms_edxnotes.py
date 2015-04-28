@@ -11,7 +11,7 @@ from ...pages.lms.edxnotes import EdxNotesUnitPage, EdxNotesPage
 from ...fixtures.edxnotes import EdxNotesFixture, Note, Range
 
 
-@skipUnless(os.environ.get("FEATURE_EDXNOTES"), "Requires Student Notes feature to be enabled")
+# @skipUnless(os.environ.get("ENABLE_EDXNOTES"), "Requires Student Notes feature to be enabled")
 class EdxNotesTestMixin(UniqueCourseTest):
     """
     Creates a course with initial data and contains useful helper methods.
@@ -148,7 +148,7 @@ class EdxNotesDefaultInteractionsTest(EdxNotesTestMixin):
             for note in component.edit_note():
                 note.tags = tags[index]
                 index += 1
-        self.assertEqual(index, len(tags))
+        self.assertEqual(index, len(tags), "Number of supplied tags did not match components")
 
     def remove_notes(self, components):
         self.assertGreater(len(components), 0)
@@ -317,17 +317,16 @@ class EdxNotesDefaultInteractionsTest(EdxNotesTestMixin):
         Scenario: screen reader labels exist for text and tags fields
         Given I have a course with 3 components with notes
         When I open the unit with 2 annotatable components
-        And I open the editors for the notes
-        Then the text and tags fields all have screen reader labels
+        And I open the editor for the first note
+        Then the text and tags fields both have screen reader labels
         """
         self._add_notes()
         self.note_unit_page.visit()
 
-        components = self.note_unit_page.components
-        # for component in components:
-        for note in components[0].edit_note():
+        for note in self.note_unit_page.components[0].edit_note():
             self.assertTrue(note.has_sr_label(0, "Edit note"))
             self.assertTrue(note.has_sr_label(1, "Edit tags"))
+
 
 class EdxNotesPageTest(EdxNotesTestMixin):
     """
