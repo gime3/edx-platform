@@ -9,7 +9,7 @@ from rest_framework import permissions, status, response
 from courseware.courses import get_course_with_access
 from opaque_keys.edx.keys import CourseKey
 from openedx.core.lib.api.permissions import IsUserInUrl
-from util.authentication import (
+from openedx.core.lib.api.authentication import (
     SessionAuthenticationAllowInactiveUser,
     OAuth2AuthenticationAllowInactiveUser,
 )
