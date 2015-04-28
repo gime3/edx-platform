@@ -20,6 +20,8 @@ class LegacyFieldMappingProcessorTestCase(EventTrackingTestCase):
         EVENT_TRACKING_PROCESSORS=LEGACY_SHIM_PROCESSOR,
     )
     def test_event_field_mapping(self):
+        self.recreate_tracker()
+
         data = {sentinel.key: sentinel.value}
 
         context = {
@@ -68,6 +70,8 @@ class LegacyFieldMappingProcessorTestCase(EventTrackingTestCase):
         EVENT_TRACKING_PROCESSORS=LEGACY_SHIM_PROCESSOR,
     )
     def test_missing_fields(self):
+        self.recreate_tracker()
+
         self.tracker.emit(sentinel.name)
 
         emitted_event = self.get_event()

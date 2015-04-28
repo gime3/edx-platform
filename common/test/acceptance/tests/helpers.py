@@ -381,6 +381,11 @@ class EventsTestMixin(object):
 
             assert event_a == event_b  # this is true! both of these promises return the first matching event!
 
+        If you want to distinguish between the two "foobar" events it is recommended that you use `create_event_promise`
+        and specify a more rigorous function for checking if you have found the correct event.
+
+        This function is designed for cases when only one event of a particular type will be emitted on a page.
+
         """
         def check_event_type(event):
             return event.get('event_type', '') == event_type
@@ -464,8 +469,7 @@ class EventPromise(Promise):
     """
     A promise that is fulfilled when an event results in `check_event_func(event)` returning True.
 
-    Note that `check_event_func` will be called on all events emitted after the time this promise is created, so be sure
-    to create the promise before emitting any events.
+    Note that `check_event_func` should be specific enough to uniquely identify the event of interest.
     """
 
     def __init__(self, event_collection, start_time, check_event_func, description, **kwargs):

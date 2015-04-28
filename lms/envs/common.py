@@ -621,6 +621,7 @@ EVENT_TRACKING_BACKENDS = {
         }
     }
 }
+EVENT_TRACKING_PROCESSORS = []
 
 # Backwards compatibility with ENABLE_SQL_TRACKING_LOGS feature flag.
 # In the future, adding the backend to TRACKING_BACKENDS should be enough.

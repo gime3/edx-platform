@@ -1,21 +1,20 @@
 # pylint: disable=missing-docstring,maybe-no-member
 
 from mock import patch, sentinel
-from freezegun import freeze_time
 
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.test.client import RequestFactory
+from django.test.utils import override_settings
 
 from eventtracking import tracker
 from track import views
 from track.middleware import TrackMiddleware
-from track.tests import EventTrackingTestCase
+from track.tests import EventTrackingTestCase, FROZEN_TIME
+from common.assertions.events import assert_event_matches
 
 from datetime import datetime
 import pytz
-
-expected_time = datetime(2013, 10, 3, 8, 24, 55).replace(tzinfo=pytz.UTC)
 
 
 class TestTrackViews(EventTrackingTestCase):
@@ -36,7 +35,6 @@ class TestTrackViews(EventTrackingTestCase):
             sentinel.key: sentinel.value
         }
 
-    @freeze_time(expected_time)
     def test_user_track(self):
         request = self.request_factory.get('/event', {
             'page': self.url_with_course,
@@ -48,27 +46,19 @@ class TestTrackViews(EventTrackingTestCase):
 
         actual_event = self.get_event()
         expected_event = {
-            'accept_language': '',
-            'referer': '',
-            'username': 'anonymous',
-            'session': '',
-            'ip': '',
-            'event_source': 'browser',
-            'event_type': str(sentinel.event_type),
-            'name': str(sentinel.event_type),
-            'event': '{}',
-            'agent': '',
-            'page': self.url_with_course,
-            'time': expected_time,
-            'host': '',
             'context': {
                 'course_id': 'foo/bar/baz',
                 'org_id': 'foo',
+                'event_source': 'browser',
+                'page': self.url_with_course,
+                'username': 'anonymous'
             },
+            'data': {},
+            'timestamp': FROZEN_TIME,
+            'name': str(sentinel.event_type)
         }
-        self.assert_event_matches(expected_event, actual_event)
+        assert_event_matches(expected_event, actual_event)
 
-    @freeze_time(expected_time)
     def test_user_track_with_missing_values(self):
         request = self.request_factory.get('/event')
 
@@ -76,28 +66,27 @@ class TestTrackViews(EventTrackingTestCase):
 
         actual_event = self.get_event()
         expected_event = {
-            'accept_language': '',
-            'referer': '',
-            'username': 'anonymous',
-            'session': '',
-            'ip': '',
-            'event_source': 'browser',
-            'event_type': 'unknown',
-            'name': 'unknown',
-            'event': '{}',
-            'agent': '',
-            'page': '',
-            'time': expected_time,
-            'host': '',
             'context': {
                 'course_id': '',
                 'org_id': '',
+                'event_source': 'browser',
+                'page': '',
+                'username': 'anonymous'
             },
+            'data': {},
+            'timestamp': FROZEN_TIME,
+            'name': 'unknown'
         }
-        self.assert_event_matches(expected_event, actual_event)
+        assert_event_matches(expected_event, actual_event)
 
-    @freeze_time(expected_time)
-    def test_user_track_with_middleware(self):
+        views.user_track(request)
+
+    @override_settings(
+        EVENT_TRACKING_PROCESSORS=[{'ENGINE': 'track.shim.LegacyFieldMappingProcessor'}],
+    )
+    def test_user_track_with_middleware_and_processors(self):
+        self.recreate_tracker()
+
         middleware = TrackMiddleware()
         payload = '{"foo": "bar"}'
         user_id = 1
@@ -128,7 +117,7 @@ class TestTrackViews(EventTrackingTestCase):
                 'event': payload,
                 'agent': str(sentinel.user_agent),
                 'page': self.url_with_course,
-                'time': expected_time,
+                'time': FROZEN_TIME,
                 'host': 'testserver2',
                 'context': {
                     'course_id': 'foo/bar/baz',
@@ -141,9 +130,8 @@ class TestTrackViews(EventTrackingTestCase):
             middleware.process_response(request, None)
 
         actual_event = self.get_event()
-        self.assert_event_matches(expected_event, actual_event)
+        assert_event_matches(expected_event, actual_event)
 
-    @freeze_time(expected_time)
     def test_server_track(self):
         request = self.request_factory.get(self.path_with_course)
         views.server_track(request, str(sentinel.event_type), '{}')
@@ -158,13 +146,12 @@ class TestTrackViews(EventTrackingTestCase):
             'event': '{}',
             'agent': '',
             'page': None,
-            'time': expected_time,
+            'time': FROZEN_TIME,
             'host': 'testserver',
             'context': {},
         }
         self.mock_tracker.send.assert_called_once_with(expected_event)
 
-    @freeze_time(expected_time)
     def test_server_track_with_middleware(self):
         middleware = TrackMiddleware()
         request = self.request_factory.get(self.path_with_course)
@@ -184,7 +171,7 @@ class TestTrackViews(EventTrackingTestCase):
                 'event': '{}',
                 'agent': '',
                 'page': None,
-                'time': expected_time,
+                'time': FROZEN_TIME,
                 'host': 'testserver',
                 'context': {
                     'user_id': '',
@@ -198,7 +185,6 @@ class TestTrackViews(EventTrackingTestCase):
 
         self.mock_tracker.send.assert_called_once_with(expected_event)
 
-    @freeze_time(expected_time)
     def test_server_track_with_middleware_and_google_analytics_cookie(self):
         middleware = TrackMiddleware()
         request = self.request_factory.get(self.path_with_course)
@@ -219,7 +205,7 @@ class TestTrackViews(EventTrackingTestCase):
                 'event': '{}',
                 'agent': '',
                 'page': None,
-                'time': expected_time,
+                'time': FROZEN_TIME,
                 'host': 'testserver',
                 'context': {
                     'user_id': '',
@@ -233,7 +219,6 @@ class TestTrackViews(EventTrackingTestCase):
 
         self.mock_tracker.send.assert_called_once_with(expected_event)
 
-    @freeze_time(expected_time)
     def test_server_track_with_no_request(self):
         request = None
         views.server_track(request, str(sentinel.event_type), '{}')
@@ -248,13 +233,12 @@ class TestTrackViews(EventTrackingTestCase):
             'event': '{}',
             'agent': '',
             'page': None,
-            'time': expected_time,
+            'time': FROZEN_TIME,
             'host': '',
             'context': {},
         }
         self.mock_tracker.send.assert_called_once_with(expected_event)
 
-    @freeze_time(expected_time)
     def test_task_track(self):
         request_info = {
             'accept_language': '',
@@ -281,7 +265,7 @@ class TestTrackViews(EventTrackingTestCase):
             'event': expected_event_data,
             'agent': 'agent',
             'page': None,
-            'time': expected_time,
+            'time': FROZEN_TIME,
             'host': 'testserver',
             'context': {
                 'course_id': '',

@@ -5,6 +5,7 @@ import json
 from ..helpers import EventsTestMixin
 from .test_video_module import VideoBaseTest
 
+from common.assertions.events import assert_event_matches
 from opaque_keys.edx.keys import UsageKey, CourseKey
 
 
@@ -29,7 +30,7 @@ class VideoEventsTest(EventsTestMixin, VideoBaseTest):
         load_video_event = load_video_promise.fulfill()
 
         self.assert_payload_contains_ids(load_video_event)
-        self.assert_event_matches({'event_type': 'load_video'}, load_video_event)
+        assert_event_matches({'event_type': 'load_video'}, load_video_event)
 
         play_video_promise = self.create_event_of_type_promise('play_video')
         pause_video_promise = self.create_event_of_type_promise('pause_video')
@@ -60,7 +61,7 @@ class VideoEventsTest(EventsTestMixin, VideoBaseTest):
                 'code': '3_yD_cEKoCk'
             }
         }
-        self.assert_event_matches(expected_event_pattern, video_event)
+        assert_event_matches(expected_event_pattern, video_event)
 
     def assert_valid_control_event_at_time(self, video_event, time_in_seconds):
         """
@@ -121,7 +122,7 @@ class VideoEventsTest(EventsTestMixin, VideoBaseTest):
             'referer': self.browser.current_url,
             'name': 'load_video',
         }
-        self.assert_event_matches(static_fields_pattern, load_video_event, strict=True)
+        assert_event_matches(static_fields_pattern, load_video_event, strict=True)
 
     def assert_field_type(self, event_dict, field, field_type):
         self.assertIn(field, event_dict, '{0} not found in the root of the event'.format(field))
