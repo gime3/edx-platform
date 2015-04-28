@@ -229,9 +229,10 @@ class TestMobileAPIMilestones(MobileAPITestCase, MobileCourseAccessTestMixin):
     """
     Tests the Mobile API decorators for milestones.
 
-    The two milestones supported and tests are entrance exams and
+    The two milestones supported in these tests are entrance exams and
     pre-requisite courses. If either of these milestones are unfulfilled,
-    the mobile api will block content until the milestone is fulfilled.
+    the mobile api will appropriately block content until the milestone is
+    fulfilled.
     """
     REVERSE_INFO = {'name': 'video-summary-list', 'params': ['course_id']}
     MILESTONE_ERROR = {'developer_message': 'Cannot access content with unfulfilled pre-requisites or unpassed entrance exam.'}

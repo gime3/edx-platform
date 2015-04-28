@@ -4,12 +4,11 @@ Utility library for working with the edx-milestones app
 """
 
 from django.conf import settings
-from django.test.client import RequestFactory
 from django.utils.translation import ugettext as _
 
 from milestones.exceptions import InvalidMilestoneRelationshipTypeException
 from opaque_keys import InvalidKeyError
-from opaque_keys.edx.keys import CourseKey, UsageKey
+from opaque_keys.edx.keys import CourseKey
 from xmodule.modulestore.django import modulestore
 
 NAMESPACE_CHOICES = {
@@ -317,12 +316,9 @@ def remove_content_references(content_id):
 
 def any_unfulfilled_milestones(course_id, user_id):
     """ Returns a boolean if user has any unfulfilled milestones """
-    try:
-        return bool(
-            get_course_milestones_fulfillment_paths(course_id, {"id": user_id})
-        )
-    except InvalidMilestoneRelationshipTypeException:
-        return False
+    return bool(
+        get_course_milestones_fulfillment_paths(course_id, {"id": user_id})
+    )
 
 
 def get_course_milestones_fulfillment_paths(course_id, user_id):
