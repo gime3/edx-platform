@@ -1,5 +1,6 @@
 
 import json
+import pprint
 
 
 def assert_event_matches(expected, actual, strict=False):
@@ -35,7 +36,13 @@ def assert_event_matches(expected, actual, strict=False):
     """
     errors = _compare_trees(expected, actual, strict, [])
     if len(errors) > 0:
-        raise AssertionError('Unexpected event differences found:\n' + '\n'.join(errors))
+        debug_info = [
+            'Expected:',
+            pprint.pformat(expected),
+            'Actual:',
+            pprint.pformat(actual),
+        ]
+        raise AssertionError('Unexpected event differences found:\n' + '\n'.join(debug_info + errors))
 
 
 def _compare_trees(expected, actual, strict, path):
