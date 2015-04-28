@@ -298,7 +298,9 @@ class CommonMixedModuleStoreSetup(CourseComparisonTest):
 @ddt.ddt
 @attr('mongo')
 class TestMixedModuleStore(CommonMixedModuleStoreSetup):
-
+    """
+    Tests of the MixedModulestore interface methods.
+    """
     @ddt.data('draft', 'split')
     def test_get_modulestore_type(self, default_ms):
         """
@@ -2257,7 +2259,10 @@ class TestMixedModuleStore(CommonMixedModuleStoreSetup):
 @ddt.ddt
 @attr('mongo')
 class TestPublishOverExportImport(CommonMixedModuleStoreSetup):
-
+    """
+    Tests which publish (or don't publish) items - and then export/import the course,
+    checking the state of the imported items.
+    """
     def setUp(self):
         """
         Set up the database for testing
@@ -2518,7 +2523,6 @@ class TestPublishOverExportImport(CommonMixedModuleStoreSetup):
                 component = self.store.get_item(unit.location)
                 self.assertEqual(component.display_name, 'Text')
 
-
     @ddt.data(ModuleStoreEnum.Type.mongo, ModuleStoreEnum.Type.split)
     def test_vertical_with_published_unit_remains_published_before_export_and_after_import(self, default_ms):
         """
@@ -2578,4 +2582,3 @@ class TestPublishOverExportImport(CommonMixedModuleStoreSetup):
             with self.store.branch_setting(ModuleStoreEnum.Branch.published_only, source_course_key):
                 component = self.store.get_item(unit.location)
                 self.assertEqual(component.display_name, updated_display_name)
-
