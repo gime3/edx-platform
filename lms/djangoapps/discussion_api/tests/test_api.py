@@ -11,17 +11,15 @@ from discussion_api.api import get_course_topics
 from openedx.core.djangoapps.course_groups.models import CourseUserGroupPartitionGroup
 from openedx.core.djangoapps.course_groups.tests.helpers import CohortFactory
 from student.tests.factories import UserFactory
-from util.testing import UrlResetMixin
 from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase
 from xmodule.modulestore.tests.factories import CourseFactory, ItemFactory
 from xmodule.partitions.partitions import Group, UserPartition
 
 
 @mock.patch.dict("django.conf.settings.FEATURES", {"DISABLE_START_DATES": False})
-class GetCourseTopicsTest(UrlResetMixin, ModuleStoreTestCase):
+class GetCourseTopicsTest(ModuleStoreTestCase):
     """Test for get_course_topics"""
 
-    @mock.patch.dict("django.conf.settings.FEATURES", {"ENABLE_DISCUSSION_SERVICE": True})
     def setUp(self):
         super(GetCourseTopicsTest, self).setUp()
         self.maxDiff = None  # pylint: disable=invalid-name
