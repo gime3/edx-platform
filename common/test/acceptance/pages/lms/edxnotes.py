@@ -523,7 +523,7 @@ class EdxNoteHighlight(NoteChild):
         Returns text of the note.
         """
         self.show()
-        element = self.q(css=self._bounded_selector(".annotator-annotation > div"))
+        element = self.q(css=self._bounded_selector(".annotator-annotation > div.annotator-note"))
         if element:
             text = element.text[0].strip()
         else:
@@ -538,3 +538,43 @@ class EdxNoteHighlight(NoteChild):
         Sets text for the note.
         """
         self.q(css=self._bounded_selector(".annotator-item textarea")).first.fill(value)
+
+    @property
+    def tags(self):
+        """
+        Returns the tags associated with the note.
+
+        Tags are returned as a list of strings, with each tag as an individual string.
+        """
+        tag_text = []
+        self.show()
+        tags = self.q(css=self._bounded_selector(".annotator-annotation > div.annotator-tags > span.annotator-tag"))
+        if tags:
+            for tag in tags:
+                tag_text.append(tag.text)
+        self.q(css=("body")).first.click()
+        self.wait_for_notes_invisibility()
+        return tag_text
+
+    @tags.setter
+    def tags(self, tags):
+        """
+        Sets tags for the note. Tags should be supplied as a single string (with space separator between tags).
+        """
+        self.q(css=self._bounded_selector(".annotator-item input")).first.fill(tags)
+
+    def has_sr_label(self, index, expected_text):
+        """
+        Returns true iff a screen reader label exists for the annotator field with the specified index and text.
+        """
+        label_exists = False
+        annotator_field_label = self.q(css=self._bounded_selector("li.annotator-item > label.sr"))[index]
+        if annotator_field_label and \
+            (annotator_field_label.get_attribute("for") == "annotator-field-"+str(index)) and \
+            (annotator_field_label.text == expected_text):
+            label_exists = True
+
+        self.q(css=("body")).first.click()
+        self.wait_for_notes_invisibility()
+
+        return label_exists
